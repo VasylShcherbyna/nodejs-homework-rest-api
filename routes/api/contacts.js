@@ -1,25 +1,108 @@
-const express = require('express')
+const express = require("express");
+const createError = require("http-errors");
 
-const router = express.Router()
+const { Contact, schemas } = require("../../models/contact");
+const Joi = require("joi");
+// const { schemas } = require("../../models/contact");
 
-router.get('/', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+const router = express.Router();
 
-router.get('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+router.get("/", async (req, res, next) => {
+  try {
+    const result = await Contact.find();
+    res.json({ result });
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.post('/', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+router.get("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await Contact.findById(id);
+    if (!result) {
+      const error = new Error("Not found");
+      error.status = 404;
+      throw error;
+    }
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.delete('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+router.post("/", async (req, res, next) => {
+  try {
+    const { error } = schemas.add.validate(req.body);
+    if (error) {
+      throw new createError(400, "Missing required name field");
+    }
 
-router.put('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+    const { name, email, phone } = req.body;
+    const result = await Contact.create(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 
-module.exports = router
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await Contact.findByIdAndDelete(id);
+    if (!result) {
+      throw new createError(404, "Not found");
+    }
+    res.json({ message: "Contact deleted" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/:id", async (req, res, next) => {
+  try {
+    const { error } = schemas.add.validate(req.body);
+    if (error) {
+      throw new createError(400, error.message);
+    }
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(404, "Id not valid");
+    }
+    const { name, email, phone } = req.body;
+    const result = await Contact.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    if (!result) {
+      throw new createError(404, "Not found");
+    }
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:id/favorite", async (req, res, next) => {
+  try {
+    const { error } = schemas.updateFavofite.validate(req.body);
+    if (error) {
+      throw new createError(400, "Missing field favorite");
+    }
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(404, "Id not valid");
+    }
+    const { name, email, phone } = req.body;
+    const result = await Contact.findByIdAndUpdate(id, name, email, phone, {
+      new: true,
+    });
+    if (!result) {
+      throw new createError(404, "Not found");
+    }
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+module.exports = router;
