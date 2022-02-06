@@ -1,5 +1,6 @@
 const express = require("express");
 const createError = require("http-errors");
+const { authenticate } = require("../../middlewares");
 
 const { Contact, schemas } = require("../../models/contact");
 const Joi = require("joi");
@@ -7,9 +8,10 @@ const Joi = require("joi");
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req, res, next) => {
   try {
-    const result = await Contact.find();
+    const { _id } = req.user;
+    const result = await Contact.find({ owner: _id }).populate("owner");
     res.json({ result });
   } catch (error) {
     next(error);
@@ -31,7 +33,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authenticate, async (req, res, next) => {
   try {
     const { error } = schemas.add.validate(req.body);
     if (error) {
@@ -39,7 +41,8 @@ router.post("/", async (req, res, next) => {
     }
 
     const { name, email, phone } = req.body;
-    const result = await Contact.create(req.body);
+    const data = { ...req.body, owner: req.user._id };
+    const result = await Contact.create(data);
     res.status(201).json(result);
   } catch (error) {
     next(error);
